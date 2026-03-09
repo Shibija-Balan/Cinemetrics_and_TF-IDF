@@ -302,6 +302,21 @@ The 2D analysis suggests that premium users are engaged more overall with an ave
 #| label: task-7-code
 # Write your Task 7 code here:
 
+tidy_review = cinemetrics %>% 
+  filter(!is.na(review_snippet)) %>%
+  select(review_snippet) %>% 
+  unnest_tokens(output = word , input = review_snippet) %>% 
+  anti_join (stop_words , by ="word") %>% 
+  count (word, sort = TRUE )
+
+top_10_words = tidy_review %>% 
+  head(10)
+
+top_10_words
+
+ggplot(top_10_words, aes( x= reorder(word,n) , y = n )) + geom_col() + labs( x = "Word" , y = "Frequency" , title = " Frequency of Top 10 Most Occuring Words") +coord_flip()
+
+
 
 ```
 
@@ -309,7 +324,7 @@ The 2D analysis suggests that premium users are engaged more overall with an ave
 
 #### Written Interpretation
 
-*Replace this text with your explanation of why the top two words are unhelpful for analysis.*
+The two most frequent non-stop words are film and watch with a frequency of 5674 and 5317 respectively, but these words provide very little useful insight because they are generic terms that are naturally expected to appear often in movie reviews. They do not explain why audiences rated a movie highly or what makes a specific genre distinctive, since they are not tied to particular themes, emotions, or stylistic features. As a result, simple word frequency is limited here, and a measure such as TF-IDF is more useful for identifying words that are more distinctive and informative within particular genres or review groups.
 
 
 ### Task 8: Sentiment Analysis
@@ -319,6 +334,25 @@ The 2D analysis suggests that premium users are engaged more overall with an ave
 #| label: task-8-code
 # Write your Task 8 code here:
 
+bing_lexicon <- get_sentiments("bing")
+
+review_sentiment <-  cinemetrics %>% 
+  filter(!is.na(review_snippet),!is.na(primary_genre),!is.na(user_rating_100)) %>%
+  mutate(review_id = row_number()) %>% 
+  select(review_id,primary_genre,user_rating_100,review_snippet) %>% 
+  unnest_tokens(output = word , input = review_snippet) %>% 
+  inner_join(bing_lexicon, by= "word") %>% 
+  mutate( sentiment_value = if_else(sentiment=="positive", +1 , -1 )) %>% 
+  group_by(review_id,primary_genre,user_rating_100) %>% 
+  summarise(net_sentiment= sum(sentiment_value))
+
+genre_sentiment <- review_sentiment %>% 
+  group_by(primary_genre) %>% 
+  summarise( avg_net_sentiment = mean(net_sentiment) , 
+             avg_user_rating = mean (user_rating_100))
+
+ggplot(genre_sentiment, aes(x=avg_net_sentiment, y = avg_user_rating ,colour = primary_genre )) + geom_point()
+
 
 ```
 
@@ -326,7 +360,13 @@ The 2D analysis suggests that premium users are engaged more overall with an ave
 
 #### Written Interpretation
 
-*Replace this text with your explanation of the scatterplot outlier.*
+The clear anomaly on the scatter plot is other, which sits far to the left with a negative average net sentiment of roughly -0.2, yet has the highest average user rating at around 74.5. This differs from the rest of the genres, which cluster together with positive average sentiment values around 0.75 to 0.80 and ratings near 71 to 71.5.
+
+This semantic anomaly occurs because the Bing lexicon classifies words individually as positive or negative without considering context, so reviews in other may contain lexically negative words that are used in a praising or genre-specific way. 
+
+In addition, because other is a collapsed category containing multiple smaller genres, its language patterns are likely to be more mixed and less well captured by a simple sentiment lexicon.
+
+For example, words such as “terrifying” or “disturbing” may be labelled as negative, even though in the context of a horror or intense film review they can actually express praise. As a result, the average sentiment score may appear artificially low even when the films are highly rated by audiences.
 
 
 ### Task 9: Advanced Text Mining (TF-IDF)

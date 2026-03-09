@@ -196,25 +196,40 @@ The empirical results show that a higher production budget does not guarantee a 
 #| label: task-5-code
 # Write your Task 5 code here:
 
+top_10_movies <- cinemetrics %>% 
+  count(movie_title , sort = TRUE) %>% 
+  top_n(10)
 
+top_10_ratings <- cinemetrics %>% 
+  inner_join(top_10_movies, by = "movie_title" ) %>% 
+  mutate ( movie_title = fct_reorder(movie_title,user_rating_100,.fun = median, .desc = TRUE,.na_rm = TRUE))
+  
+ggplot (data = top_10_ratings , aes (x = "", y = user_rating_100)) + geom_boxplot() + facet_wrap( ~movie_title , nrow = 2)
 ```
 
 <!--- WRITE YOUR WRITTEN ANSWER BELOW THIS LINE --->
 
 #### Written Interpretation
 
-*Replace this text with your interpretation of the boxplots' visual footprints.*
+Up contains the lowest individual user rating among the 10 most-watched movies, as shown by the lowest outlier point on the plot which falls below 25. Its relatively narrow box also suggests a smaller interquartile range approximately from 58 to 72, meaning the middle 50% of ratings are more tightly clustered and audience opinion is more consistent.
 
 ```{r}
 #| label: task-5-verification
 # Write your verification code here:
+
+top_10_ratings_IQR <- top_10_ratings %>% 
+  group_by(movie_title) %>% 
+  summarize( IQR_rating = IQR(user_rating_100,na.rm = TRUE) ) %>% 
+  arrange(desc(IQR_rating))
+  
+top_10_ratings_IQR %>% knitr::kable(caption = "IQR of user ratings for 10 most watched movies")
 
 
 ```
 
 #### Empirical Verification
 
-*Replace this text with your empirical finding regarding the highest and lowest IQRs.*
+Inside Out has the highest IQR range of 22.5 and Dune has the lowest IQR range of 18.
 
 
 ### Task 6: Engagement Score and Subscription Type
@@ -224,6 +239,29 @@ The empirical results show that a higher production budget does not guarantee a 
 #| label: task-6-code
 # Write your Task 6 code here:
 
+engagement_2d <- cinemetrics %>%  
+  filter (!is.na(subscription_type)) %>% 
+  group_by(subscription_type) %>% 
+  summarise(avg_engagement_score = mean(engagement_score, na.rm = TRUE))
+
+engagement_2d %>% knitr::kable(caption = "Average engagement score by subscription type")
+
+age_quartiles <- cinemetrics$age %>% 
+  quantile(probs = c(0.25,0.50,0.75), na.rm = TRUE )
+
+age_quartiles
+
+cinemetrics <- cinemetrics %>% 
+  mutate( age_tier = case_when(age <= 25 ~ "Q1",
+                               age <= 35 ~ "Q2",
+                               age <= 45 ~ "Q3", 
+                               age > 45 ~ "Q4" ))
+
+engagement_3d <- cinemetrics %>% 
+  filter (!is.na(subscription_type), !is.na(age_tier)) %>% 
+  group_by(subscription_type , age_tier) %>% 
+  summarise(avg_engagement_score = mean(engagement_score,na.rm = TRUE))
+
 
 ```
 
@@ -231,18 +269,26 @@ The empirical results show that a higher production budget does not guarantee a 
 #| label: task-6-verification
 # Write your verification code here:
 
+engagement_verification <- cinemetrics %>% 
+  filter (!is.na(subscription_type), !is.na(age_tier)) %>% 
+  group_by(subscription_type , age_tier) %>% 
+  summarise(user_count = n ())
+
+engagement_verification %>% 
+tidyr :: pivot_wider( names_from = subscription_type , values_from = user_count)
+
 
 ```
 
 #### Empirical Verification
 
-*Replace this text with your empirical finding regarding the distribution of users across age and subscription tiers.*
+Basic users are concentrated in the younger age groups, with 4958 users in Q1 (under 25 years old) and 3523 in Q2 (25 to 35 years old), while Premium users are concentrated in the older age groups, with 3762 users in Q3 (35 to 45 years old) and 4178 in Q4 (over 45 years old). This shows that the two subscription types are distributed unevenly across age, which is likely to distort the overall comparison of engagement scores.
 
 <!--- WRITE YOUR WRITTEN ANSWER BELOW THIS LINE --->
 
 #### Written Interpretation
 
-*Replace this text with your explanation of the mathematical illusion.*
+The 2D analysis suggests that premium users are engaged more overall with an average engagement score of 56.48 whereas basic users have an average engagement score of 44.04 overall.However, the 3D analysis shows the opposite pattern within every age tier, where Basic users have higher average engagement than Premium users in Q1 (28.94 vs 12.66), Q2 (50.93 vs 38.24), Q3 (74.34 vs 55.10), and Q4 (80.10 vs 68.77). This is called the Simpsons paradox where an overall trend reverses after controlling for a third variable. It occurs here because the subscription types are distributed very unevenly across age tiers: Basic users are concentrated in the younger, lower-engagement groups, while Premium users are concentrated in the older, higher-engagement groups. As a result, the overall engagement averages are driven by differences in age composition rather than subscription type alone.
 
 
 ---

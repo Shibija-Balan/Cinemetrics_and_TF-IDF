@@ -30,6 +30,23 @@ library(knitr)
 #| label: task-1-code
 # Write your Task 1 code here:
 
+history <- read_csv("data/history.csv")
+titles <- read_csv("data/titles.csv")
+users <- read_csv("data/users.csv")
+
+history_clean <- history %>% unique ()
+titles_clean <- titles %>% unique()
+users_clean <- users %>% unique()
+
+cinemetrics <- history_clean %>% 
+                  left_join (users_clean, by = 'user_id') %>% 
+                    left_join(titles_clean , by = 'movie_id')
+
+nrow(history)
+nrow(history_clean)
+nrow(titles)
+nrow(titles_clean)
+nrow(cinemetrics)
 
 ```
 
@@ -37,7 +54,7 @@ library(knitr)
 
 #### Written Interpretation
 
-*Replace this text with your one-sentence explanation regarding the cleaning step performed before the join.*
+It was necessary to remove duplicates from history to avoid counting the same viewing record more than once, and duplicates had to be removed from the titles data frame because otherwise repeated movie_id rows would create duplicate matches in the join and artificially increase the final row count.
 
 
 ### Task 2: Missing Values Handling
@@ -47,6 +64,15 @@ library(knitr)
 #| label: task-2-code
 # Write your Task 2 code here:
 
+missing_summary <- tibble (
+  variable = colnames ( cinemetrics) , 
+  missing_values = colSums(is.na(cinemetrics))
+) %>%  arrange(desc(missing_values))
+
+missing_summary %>% knitr::kable(caption = "Missing values per variable")
+
+user_rating_median <- median(cinemetrics$user_rating_100 , na.rm = TRUE)
+user_rating_median
 
 ```
 
@@ -54,7 +80,7 @@ library(knitr)
 
 #### Written Interpretation
 
-*Replace this text with your explanation of summary().*
+It is important to use explicit missing-value functions because they directly identify and count NA values, whereas generic overview functions may not clearly report missingness, which can lead to misinterpretation of the dataset and misleading summary statistics such as the mean, median, or mode; this issue is especially common for character variables, where missing values are often not clearly flagged.This happens because those columns are treated as text rather than numerical variables, so the output may only preview values instead of explicitly counting NAs.
 
 
 ### Task 3: Genre Grouping
@@ -64,12 +90,46 @@ library(knitr)
 #| label: task-3-code
 # Write your Task 3 code here:
 
+cinemetrics |>
+  count(genre_tags, sort = TRUE)
+
+cinemetrics <- cinemetrics %>% 
+  mutate ( primary_genre = genre_tags %>% 
+             as_factor() %>% 
+             fct_collapse(
+               'Animation' = c("animated", "animation", "animation, kids"),
+               'Comedy' = c("comedy", "comedy, family"),
+              'Sci-Fi' = c("Science fiction", "sci-fi", "sci-fi, fantasy"),
+              'Drama' = c("Drama", "drama, emotional", "drama, critically-acclaimed"),
+              'Horror' = c("horror", "scary", "terror"),
+              'Romance' = c("Romance", "rom-com", "romantic", "romantic comedy"),
+              'Action' = c("action", "action, high-octane"),
+              'Documentary' = c("Documentary", "documentary, real-world")
+              )
+  )
+
+cinemetrics <-  cinemetrics %>%
+  mutate( primary_genre = fct_lump(primary_genre , n = 5 , other_level = 'other'))
+
+levels(cinemetrics$primary_genre)
+cinemetrics %>% count(primary_genre, sort = TRUE)
+
+
 
 ```
 
 ```{r}
 #| label: task-3-verification
 # Write your verification code here:
+
+rating_verification <- cinemetrics %>% 
+  filter ( genre_tags == 'Romance' | genre_tags =='romantic comedy') %>% 
+  group_by( genre_tags) %>% 
+  summarize ( avg_user_rating_100 = mean(user_rating_100,na.rm = TRUE),
+              n = n())
+
+rating_verification %>%
+  knitr::kable(caption = "Comparison of raw Romance and romantic comedy genre tags")
 
 
 ```
@@ -78,7 +138,7 @@ library(knitr)
 
 #### Written Interpretation
 
-*Replace this text with your empirical finding regarding the 'romantic comedy' sub-genre.*
+Collapsing the romantic comedy subgroup into the broader Romance category masks its lower average rating, because its mean score of 66.35 across 145 observations is diluted within the much larger Romance group, which has a higher average rating of 69.83 across 991 observations. This is called aggregation distortion.
 
 
 ### Task 4: Genre Ratings Table
@@ -88,12 +148,36 @@ library(knitr)
 #| label: task-4-code
 # Write your Task 4 code here:
 
+genre_ratings <- cinemetrics %>% 
+  group_by(primary_genre)%>% 
+  summarize ( avg_user_rating_100 = mean(user_rating_100,na.rm = TRUE)) %>%   arrange(desc (avg_user_rating_100))
+
+genre_ratings %>% knitr::kable ( caption = "Average User rating for Primary genre")
+
 
 ```
 
 ```{r}
 #| label: task-4-verification
 # Write your verification code here:
+
+horror_budget <- cinemetrics %>% 
+    filter ( genre_tags == "horror" | genre_tags == "scary" |genre_tags== "terror" ) %>% 
+    summarise( genre = 'Horror' , avg_budget = mean(budget_usd, na.rm= TRUE)
+                 )
+
+action_budget <- cinemetrics %>% 
+  filter ( genre_tags == "action" | genre_tags == "action, high-octane" ) %>% 
+  summarise( genre = "Action" , avg_budget = mean(budget_usd , na.rm = TRUE ))
+
+SciFi_budget <- cinemetrics %>% 
+  filter ( primary_genre == "Sci-Fi") %>% 
+  summarise( genre = 'Sci-Fi' , avg_budget = mean (budget_usd, na.rm = TRUE) )
+
+avg_budget_usd = bind_rows (horror_budget,action_budget,SciFi_budget ) %>% 
+  arrange ( desc(avg_budget))
+
+avg_budget_usd %>%  knitr::kable (caption = " Average production budget (USD)")
 
 
 ```
@@ -102,7 +186,7 @@ library(knitr)
 
 #### Written Interpretation
 
-*Replace this text with your empirical finding regarding the budget disparity between Horror and the blockbusters.*
+The empirical results show that a higher production budget does not guarantee a higher average user rating, because Sci-Fi has the highest average budget of 139588009 USD yet does not have the highest average rating (69.69) in the genre ratings table, where Other performs better(74.34) . However, Action and Horror are absorbed into Other, so their separate average ratings cannot be directly observed from the collapsed table. This demonstrates how a massive generalised category can hide subgroup nuances. The poor performance of a small niche film group, may be concealed when it is absorbed into a larger category whose overall mean is driven by other films.
 
 
 ### Task 5: Ratings and Engagement Scores

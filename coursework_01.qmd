@@ -115,6 +115,7 @@ cinemetrics %>% count(primary_genre, sort = TRUE)
 
 
 ```
+### comment: 
 
 ```{r}
 #| label: task-3-verification
@@ -414,7 +415,7 @@ In this dataset, the difference is modest because Romance reviews still contain 
 
 #### Written Interpretation
 
-*Replace this text with your one-paragraph executive recommendation (max 150 words), citing at least three specific findings from earlier tasks and acknowledging one limitation.*
+cineMetrics should focus on converting younger Basic users into Premium through targeted content and upgrade offers rather than simply increasing spending on expensive genres. Task 6 shows that although Premium users appear more engaged overall (56.48 vs 44.04), Basic users are actually more engaged within every age tier, while younger groups are heavily concentrated in Basic subscriptions (Q1: 4958 vs 447; Q2: 3523 vs 1496), suggesting untapped upgrade potential. Task 4 also shows that higher budgets do not guarantee stronger audience response: Horror has the highest average rating (79.78) despite the lowest average budget (10,181,094 USD), while Sci-Fi (139,588,009 USD; 69.69) and Action (115,543,533 USD; 69.22) perform worse. Task 9 further suggests that some genres, especially Horror, generate more distinctive audience language than others. A limitation is that review snippets are short and genre collapsing may hide sub-genre variation.Another, limitation is that sentiment analysis using the bing lexicon does not account for genre context, meaning words like “terrifying” may be incorrectly classified as negative even when they signal positive reception in Horror films.
 
 
 ---

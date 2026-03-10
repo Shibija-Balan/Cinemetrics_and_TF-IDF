@@ -302,7 +302,7 @@ tidy_tokenized_review <- cinemetrics %>%
   anti_join (stop_words , by ="word") %>% 
   count (word, sort = TRUE )
 
-top_10_words <- tidy_review %>% 
+top_10_words <- tidy_tokenized_review %>% 
   head(10)
 
 top_10_words

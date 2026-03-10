@@ -108,8 +108,6 @@ cinemetrics <- cinemetrics %>%
               )
   )
 
-cinemetrics <-  cinemetrics %>%
-  mutate( primary_genre = fct_lump(primary_genre , n = 5 , other_level = 'other'))
 
 levels(cinemetrics$primary_genre)
 cinemetrics %>% count(primary_genre, sort = TRUE)
@@ -161,23 +159,14 @@ genre_ratings %>% knitr::kable ( caption = "Average User rating for Primary genr
 #| label: task-4-verification
 # Write your verification code here:
 
-horror_budget <- cinemetrics %>% 
-    filter ( genre_tags == "horror" | genre_tags == "scary" |genre_tags== "terror" ) %>% 
-    summarise( genre = 'Horror' , avg_budget = mean(budget_usd, na.rm= TRUE)
-                 )
 
-action_budget <- cinemetrics %>% 
-  filter ( genre_tags == "action" | genre_tags == "action, high-octane" ) %>% 
-  summarise( genre = "Action" , avg_budget = mean(budget_usd , na.rm = TRUE ))
-
-SciFi_budget <- cinemetrics %>% 
-  filter ( primary_genre == "Sci-Fi") %>% 
-  summarise( genre = 'Sci-Fi' , avg_budget = mean (budget_usd, na.rm = TRUE) )
-
-avg_budget_usd = bind_rows (horror_budget,action_budget,SciFi_budget ) %>% 
-  arrange ( desc(avg_budget))
-
-avg_budget_usd %>%  knitr::kable (caption = " Average production budget (USD)")
+budget_verification <- cinemetrics %>% 
+  filter(primary_genre=="Action"| primary_genre =="Sci-Fi"|primary_genre == "Horror") %>% 
+  group_by(primary_genre) %>% 
+  summarise( avg_budget_usd = mean(budget_usd, na.rm= TRUE), .groups = "drop")%>% 
+  arrange(desc(avg_budget_usd))
+  
+budget_verification %>% knitr::kable(caption = "Average Budget in USD")
 
 
 ```
@@ -186,7 +175,11 @@ avg_budget_usd %>%  knitr::kable (caption = " Average production budget (USD)")
 
 #### Written Interpretation
 
-The empirical results show that a higher production budget does not guarantee a higher average user rating, because Sci-Fi has the highest average budget of 139588009 USD yet does not have the highest average rating (69.69) in the genre ratings table, where Other performs better(74.34) . However, Action and Horror are absorbed into Other, so their separate average ratings cannot be directly observed from the collapsed table. This demonstrates how a massive generalised category can hide subgroup nuances. The poor performance of a small niche film group, may be concealed when it is absorbed into a larger category whose overall mean is driven by other films.
+The empirical results show that a higher production budget does not guarantee a higher average user rating. Sci-Fi has the highest average budget at 139,588,009 USD and Action also has a very high average budget of 115,543,533 USD, yet their average user ratings are only 69.69 and 69.22 respectively. In contrast, Horror has by far the lowest average budget at 10,181,094 USD but the highest average user rating at 79.78. This suggests that higher spending alone does not determine audience evaluation.
+
+A broad category such as Action may hide important sub-genre differences, because averaging across many films can conceal weaker niche groups, as seen earlier in Task 3 where romantic comedy (66.35) was masked within the broader Romance category (69.83). 
+
+More generally, the poor performance of a small niche film group can be concealed when it is absorbed into a large collapsed category whose average is driven by many other films.
 
 
 ### Task 5: Ratings and Engagement Scores
@@ -302,14 +295,14 @@ The 2D analysis suggests that premium users are engaged more overall with an ave
 #| label: task-7-code
 # Write your Task 7 code here:
 
-tidy_review = cinemetrics %>% 
+tidy_tokenized_review <- cinemetrics %>% 
   filter(!is.na(review_snippet)) %>%
   select(review_snippet) %>% 
   unnest_tokens(output = word , input = review_snippet) %>% 
   anti_join (stop_words , by ="word") %>% 
   count (word, sort = TRUE )
 
-top_10_words = tidy_review %>% 
+top_10_words <- tidy_review %>% 
   head(10)
 
 top_10_words
@@ -360,11 +353,11 @@ ggplot(genre_sentiment, aes(x=avg_net_sentiment, y = avg_user_rating ,colour = p
 
 #### Written Interpretation
 
-The clear anomaly on the scatter plot is other, which sits far to the left with a negative average net sentiment of roughly -0.2, yet has the highest average user rating at around 74.5. This differs from the rest of the genres, which cluster together with positive average sentiment values around 0.75 to 0.80 and ratings near 71 to 71.5.
+The clear anomaly on the scatter plot is Horror, which sits far to the left with a negative average net sentiment of roughly -1,12, yet has the highest average user rating at around 78.5. This differs from the rest of the genres, which cluster together with positive average sentiment values around 0.75 to 0.80 and ratings near 71 to 71.5.
 
-This semantic anomaly occurs because the Bing lexicon classifies words individually as positive or negative without considering context, so reviews in other may contain lexically negative words that are used in a praising or genre-specific way. 
+This semantic anomaly occurs because the Bing lexicon classifies words individually as positive or negative without considering context, so reviews in Horror may contain lexically negative words that are used in a praising or genre-specific way. 
 
-In addition, because other is a collapsed category containing multiple smaller genres, its language patterns are likely to be more mixed and less well captured by a simple sentiment lexicon.
+In addition, because Horror is a collapsed category containing multiple smaller genres, its language patterns are likely to be more mixed and less well captured by a simple sentiment lexicon.
 
 For example, words such as “terrifying” or “disturbing” may be labelled as negative, even though in the context of a horror or intense film review they can actually express praise. As a result, the average sentiment score may appear artificially low even when the films are highly rated by audiences.
 
@@ -377,15 +370,40 @@ For example, words such as “terrifying” or “disturbing” may be labelled 
 # Write your Task 9 code here: 
 
 
+# method 1 (works fyn with n but gives non zero tfidf for all romance and primary_genres and non zeroes only for others )
+
+unique_words <- cinemetrics %>%
+  filter(!is.na(review_snippet), !is.na(primary_genre)) %>%
+  unnest_tokens(output = word, input = review_snippet) %>%
+  anti_join(stop_words, by = "word") %>%
+  count(primary_genre, word, sort = TRUE) %>% 
+  bind_tf_idf(term = word , document = primary_genre , n = n ) %>% 
+  arrange(primary_genre, desc(tf_idf))
+  
+top_unique_word <- unique_words %>%
+  group_by(primary_genre) %>%
+  arrange(desc(tf_idf), .by_group = TRUE) %>%
+  slice_head(n = 1) %>%
+  select(primary_genre, word, tf_idf)
+  
+romance_unique <-  unique_words %>%
+  filter(primary_genre == "Romance")
 ```
 
 <!--- WRITE YOUR WRITTEN ANSWER BELOW THIS LINE --->
 
 #### Written Interpretation
 
-1. *Replace this text with the TF-IDF score for the word "film".*
-2. *Replace this text with your mathematical explanation using the IDF equation from the lecture.*
-3. *Replace this text with your comparison of TF-IDF vs frequency.*
+1. TF-IDF score for "film" is 0
+
+2. This occurs because the inverse document frequency part of the TF-IDF formula is 0 for film. Although film appears frequently in Romance reviews, it also appears across all genre documents in the dataset, so its IDF becomes 
+log(total no.of genres/ no. of genres containing the word film) = log(8/8) = log(1) = 0, which forces the overall TF-IDF score to 0.
+
+3. The top 3 TF-IDF words in Romance are "watch", "average" and "fairly" with scores of 0.014,0.0077 and 0.0077 respectively, whereas the top 3 frequency words are "film" , "watch" and "average" with frequencies of 697, 680 and 359 respectively.
+
+TF-IDF gives a better summary because it downweights words such as film that are very common across all genres and therefore not distinctive to Romance. Although watch and average still appear in both lists, TF-IDF improves the summary by prioritising words based on uniqueness as well as frequency, rather than frequency alone. 
+
+In this dataset, the difference is modest because Romance reviews still contain quite generic vocabulary, but TF-IDF still gives a more genre-specific view than raw word counts. However in genres such as Horror the difference is much clearer, where a word like scary receives a much higher TF-IDF score (0.28) and provides a more distinctive summary of the genre.
 
 
 

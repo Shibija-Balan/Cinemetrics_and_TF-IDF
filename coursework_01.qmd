@@ -27,6 +27,8 @@ library(knitr)
 <!--- DO NOT DELETE THIS LINE - TASK 1 ANCHOR --->
 
 ```{r}
+#| warning: false
+#| message: false
 #| label: task-1-code
 # Write your Task 1 code here:
 
@@ -47,6 +49,8 @@ nrow(history_clean)
 nrow(titles)
 nrow(titles_clean)
 nrow(cinemetrics)
+
+
 
 ```
 
@@ -80,7 +84,7 @@ user_rating_median
 
 #### Written Interpretation
 
-It is important to use explicit missing-value functions because they directly identify and count NA values, whereas generic overview functions may not clearly report missingness, which can lead to misinterpretation of the dataset and misleading summary statistics such as the mean, median, or mode; this issue is especially common for character variables, where missing values are often not clearly flagged.This happens because those columns are treated as text rather than numerical variables, so the output may only preview values instead of explicitly counting NAs.
+It is mathematically necessary to use explicit missing-value functions because they directly test whether each observation is missing and allow the exact number of NA values to be counted. Generic data overview functions provide a broad summary of the dataset, so missingness may be overlooked and summary statistics may be misinterpreted. This problem is especially common for character variables, where missing values are often not clearly flagged because the column is treated as text rather than being numerically summarised.
 
 
 ### Task 3: Genre Grouping
@@ -90,7 +94,7 @@ It is important to use explicit missing-value functions because they directly id
 #| label: task-3-code
 # Write your Task 3 code here:
 
-cinemetrics |>
+cinemetrics %>% 
   count(genre_tags, sort = TRUE)
 
 cinemetrics <- cinemetrics %>% 
@@ -115,7 +119,7 @@ cinemetrics %>% count(primary_genre, sort = TRUE)
 
 
 ```
-##### comment: There were no sub categories left that did not fit into a category called other hence I have exactly 8 levels
+##### comment: No additional sub-categories remained, so an "Other" category was not needed and the data contained exactly 8 levels.
 
 ```{r}
 #| label: task-3-verification
@@ -128,7 +132,7 @@ rating_verification <- cinemetrics %>%
               n = n())
 
 rating_verification %>%
-  knitr::kable(caption = "Comparison of raw Romance and romantic comedy genre tags")
+  knitr::kable(caption = "Comparison of raw Romance and Romantic Comedy genre tags")
 
 
 ```
@@ -176,19 +180,19 @@ budget_verification %>% knitr::kable(caption = "Average Budget in USD")
 
 #### Written Interpretation
 
-The empirical results show that a higher production budget does not guarantee a higher average user rating. Sci-Fi has the highest average budget at 139,588,009 USD and Action also has a very high average budget of 115,543,533 USD, yet their average user ratings are only 69.69 and 69.22 respectively. In contrast, Horror has by far the lowest average budget at 10,181,094 USD but the highest average user rating at 79.78. This suggests that higher spending alone does not determine audience evaluation.
+The empirical results show that a higher production budget does not guarantee a higher average user rating. Sci-Fi has the highest average budget at 139,588,009 USD, and an average user rating of 69.69 however Horror has by far the lowest average budget at 10,181,094 USD but the highest average user rating at 79.78. This suggests that higher spending alone does not determine average user rating.
 
-A broad category such as Action may hide important sub-genre differences, because averaging across many films can conceal weaker niche groups, as seen earlier in Task 3 where romantic comedy (66.35) was masked within the broader Romance category (69.83). 
-
-More generally, the poor performance of a small niche film group can be concealed when it is absorbed into a large collapsed category whose average is driven by many other films.
-
+A broad category such as Action may hide important sub-genre differences because averaging across many films can conceal weaker niche groups within the larger category. This is similar to the pattern seen earlier in Task 3, where Romantic Comedy (66.35) was masked within the broader Romance category (69.83). More generally, the poor performance of a small niche film group can be hidden when it is absorbed into a large collapsed category whose average is driven by many other films.
 
 ### Task 5: Ratings and Engagement Scores
 <!--- DO NOT DELETE THIS LINE - TASK 5 ANCHOR --->
 
 ```{r}
+#| warning: false
+#| message: false
 #| label: task-5-code
 # Write your Task 5 code here:
+
 
 top_10_movies <- cinemetrics %>% 
   count(movie_title , sort = TRUE) %>% 
@@ -198,7 +202,10 @@ top_10_ratings <- cinemetrics %>%
   inner_join(top_10_movies, by = "movie_title" ) %>% 
   mutate ( movie_title = fct_reorder(movie_title,user_rating_100,.fun = median, .desc = TRUE,.na_rm = TRUE))
   
-ggplot (data = top_10_ratings , aes (x = "", y = user_rating_100)) + geom_boxplot() + facet_wrap( ~movie_title , nrow = 2)
+ggplot (data = top_10_ratings , aes (x = "", y = user_rating_100)) + geom_boxplot() + facet_wrap( ~movie_title , nrow = 1) + theme(
+    strip.text = element_text(size = 5))
+
+
 ```
 
 <!--- WRITE YOUR WRITTEN ANSWER BELOW THIS LINE --->
@@ -223,13 +230,15 @@ top_10_ratings_IQR %>% knitr::kable(caption = "IQR of user ratings for 10 most w
 
 #### Empirical Verification
 
-Inside Out has the highest IQR range of 22.5 and Dune has the lowest IQR range of 18.
+Inside Out has the highest IQR range of 22.5 and Dune has the lowest of 18.
 
 
 ### Task 6: Engagement Score and Subscription Type
 <!--- DO NOT DELETE THIS LINE - TASK 6 ANCHOR --->
 
 ```{r}
+#| warning: false
+#| message: false
 #| label: task-6-code
 # Write your Task 6 code here:
 
@@ -256,10 +265,14 @@ engagement_3d <- cinemetrics %>%
   group_by(subscription_type , age_tier) %>% 
   summarise(avg_engagement_score = mean(engagement_score,na.rm = TRUE))
 
+engagement_3d %>% knitr::kable(caption = "Average engagement score by subscription type and age quartiles")
+
 
 ```
 
 ```{r}
+#| warning: false
+#| message: false
 #| label: task-6-verification
 # Write your verification code here:
 
@@ -282,7 +295,7 @@ Basic users are concentrated in the younger age groups, with 4958 users in Q1 (u
 
 #### Written Interpretation
 
-The 2D analysis suggests that premium users are engaged more overall with an average engagement score of 56.48 whereas basic users have an average engagement score of 44.04 overall.However, the 3D analysis shows the opposite pattern within every age tier, where Basic users have higher average engagement than Premium users in Q1 (28.94 vs 12.66), Q2 (50.93 vs 38.24), Q3 (74.34 vs 55.10), and Q4 (80.10 vs 68.77). This is called the Simpsons paradox where an overall trend reverses after controlling for a third variable. It occurs here because the subscription types are distributed very unevenly across age tiers: Basic users are concentrated in the younger, lower-engagement groups, while Premium users are concentrated in the older, higher-engagement groups. As a result, the overall engagement averages are driven by differences in age composition rather than subscription type alone.
+The 2D analysis suggests that Premium users are more engaged overall, with an average engagement score of 56.48 compared with 44.04 for Basic users. However, the 3D analysis shows the opposite pattern within every age tier: Basic users have higher average engagement than Premium users in Q1 (28.94 vs 12.66), Q2 (50.93 vs 38.24), Q3 (74.34 vs 55.10), and Q4 (80.10 vs 68.77). This is an example of Simpson’s paradox, where an overall trend reverses after controlling for a third variable. It occurs here because subscription types are distributed unevenly across age tiers (confounding variable) : Basic users are concentrated in younger, lower-engagement groups, while Premium users are concentrated in older, higher-engagement groups. Hence, the overall averages reflect differences in age composition rather than the effect of subscription type alone.
 
 
 ---
@@ -318,13 +331,15 @@ ggplot(top_10_words, aes( x= reorder(word,n) , y = n )) + geom_col() + labs( x =
 
 #### Written Interpretation
 
-The two most frequent non-stop words are film and watch with a frequency of 5674 and 5317 respectively, but these words provide very little useful insight because they are generic terms that are naturally expected to appear often in movie reviews. They do not explain why audiences rated a movie highly or what makes a specific genre distinctive, since they are not tied to particular themes, emotions, or stylistic features. As a result, simple word frequency is limited here, and a measure such as TF-IDF is more useful for identifying words that are more distinctive and informative within particular genres or review groups.
+The two most frequent non-stop words are “film” and “watch”, with frequencies of 5674 and 5317 respectively. However, these words provide little insight because they are generic terms that appear often in movie reviews. They don't explain what makes a genre distinctive, since they are not linked to specific themes or emotions. This shows that simple word frequency is limited in this context, whereas TF-IDF is more useful for identifying words that are more distinctive within particular genres.
 
 
 ### Task 8: Sentiment Analysis
 <!--- DO NOT DELETE THIS LINE - TASK 8 ANCHOR --->
 
 ```{r}
+#| warning: false
+#| message: false
 #| label: task-8-code
 # Write your Task 8 code here:
 
@@ -354,13 +369,11 @@ ggplot(genre_sentiment, aes(x=avg_net_sentiment, y = avg_user_rating ,colour = p
 
 #### Written Interpretation
 
-The clear anomaly on the scatter plot is Horror, which sits far to the left with a negative average net sentiment of roughly -1,12, yet has the highest average user rating at around 78.5. This differs from the rest of the genres, which cluster together with positive average sentiment values around 0.75 to 0.80 and ratings near 71 to 71.5.
+The clear anomaly on the scatter plot is Horror, which has a negative average net sentiment of about -1.12 but the highest average user rating at roughly 78.5. This contrasts with the other genres, which cluster around positive sentiment values of 0.75 to 0.80 and ratings near 71 to 71.5.
 
-This semantic anomaly occurs because the Bing lexicon classifies words individually as positive or negative without considering context, so reviews in Horror may contain lexically negative words that are used in a praising or genre-specific way. 
+This occurs because the Bing lexicon classifies words as positive or negative without considering context. In Horror reviews, words like “terrifying” or “disturbing” are labelled as negative even when they are praise.
 
-In addition, because Horror is a collapsed category containing multiple smaller genres, its language patterns are likely to be more mixed and less well captured by a simple sentiment lexicon.
-
-For example, words such as “terrifying” or “disturbing” may be labelled as negative, even though in the context of a horror or intense film review they can actually express praise. As a result, the average sentiment score may appear artificially low even when the films are highly rated by audiences.
+In addition, Horror is a collapsed category containing several sub-genres, so its language is varied and less accurately captured by a simple sentiment lexicon. Hence, its average sentiment score may appear artificially low despite strong audience ratings.
 
 
 ### Task 9: Advanced Text Mining (TF-IDF)
@@ -390,6 +403,24 @@ top_unique_word <- unique_words %>%
 romance_unique <-  unique_words %>%
   filter(primary_genre == "Romance")
 
+top_unique_word %>% knitr::kable(caption = "Highest TF-IDF word for each genre")
+
+romance_unique_top <- romance_unique %>% 
+  arrange(desc(tf_idf)) %>% 
+  slice_head(n=3) %>% 
+  select (primary_genre , word , tf_idf)
+
+romance_unique_top %>% knitr :: kable (caption = "Top 3 TF-IDF words for Romance")
+
+romance_common_top <- romance_unique %>% 
+  arrange(desc(n)) %>% 
+  slice_head(n=3) %>% 
+  select(primary_genre , word , n)
+
+romance_common_top %>% 
+  knitr::kable(caption = "TOP 3 frequency words for Romance")
+  
+
 ### for more better analysis lets try removing the word "watch" to see if there are any genre distinguishing words ###
 
 unique_words_2<- cinemetrics %>%
@@ -418,17 +449,15 @@ romance_unique_2 <-  unique_words_2 %>%
 
 1. TF-IDF score for "film" is 0
 
-2. This occurs because the inverse document frequency part of the TF-IDF formula is 0 for film. Although film appears frequently in Romance reviews, it also appears across all genre documents in the dataset, so its IDF becomes 
-log(total no.of genres/ no. of genres containing the word film) = log(8/8) = log(1) = 0, which forces the overall TF-IDF score to 0.
+2. This occurs because the inverse document frequency part of the TF-IDF formula is 0 for film. Although film appears frequently in Romance reviews, it also appears across all genre documents in the dataset, so its IDF becomes log(8/8) = log(1) = 0, which forces the overall TF-IDF score to 0.
 
-3. The top 3 TF-IDF words in Romance are "watch", "average" and "fairly" with scores of 0.014,0.0077 and 0.0077 respectively, whereas the top 3 frequency words are "film" , "watch" and "average" with frequencies of 697, 680 and 359 respectively.
+3. The top 3 TF-IDF words in Romance are "watch", "average" and "fairly", with scores of 0.014, 0.0077 and 0.0077 respectively, whereas the top 3 frequency words are "film", "watch" and "average", with frequencies of 697, 680 and 359 respectively.
 
-TF-IDF gives a better summary because it downweights words such as film that are very common across all genres and therefore not distinctive to Romance. Although watch and average still appear in both lists, TF-IDF improves the summary by prioritising words based on uniqueness as well as frequency, rather than frequency alone. 
+TF-IDF gives a better summary because it downweights words such as "film" that are common across all genres and therefore not distinctive to Romance. Although "watch" and "average" still appear in both lists, TF-IDF improves the summary by prioritising uniqueness as well as frequency.
 
-As an additional exploratory check, I removed watch, since it had the highest TF-IDF score in 7 of the 8 genres, but this produced only limited change: Romance still remained dominated by generic words such as average, fairly, and bad. 
+As an additional exploratory check, I removed "watch", since it had the highest TF-IDF score in 7 of the 8 genres, but this produced limited change. Romance remained dominated by generic words such as "average", "fairly", and "bad".This suggests that Romance reviews contain generic vocabulary, so the difference is modest here. 
 
-This suggests that the difference is modest because Romance reviews still contain quite generic vocabulary, but TF-IDF still gives a more genre-specific view than raw word counts. However in genres such as Horror the difference is much clearer, where a word like scary receives a much higher TF-IDF score (0.28) and provides a more distinctive summary of the genre.
-
+However, in genres like Horror the contrast is clearer, where a word like "scary" has a higher TF-IDF score (0.28) and provides a distinctive summary of the genre.
 
 
 ### Task 10: Executive Recommendation
@@ -438,7 +467,14 @@ This suggests that the difference is modest because Romance reviews still contai
 
 #### Written Interpretation
 
-cineMetrics should focus on converting younger Basic users into Premium through targeted content and upgrade offers rather than simply increasing spending on expensive genres. Task 6 shows that although Premium users appear more engaged overall (56.48 vs 44.04), Basic users are actually more engaged within every age tier, while younger groups are heavily concentrated in Basic subscriptions (Q1: 4958 vs 447; Q2: 3523 vs 1496), suggesting untapped upgrade potential. Task 4 also shows that higher budgets do not guarantee stronger audience response: Horror has the highest average rating (79.78) despite the lowest average budget (10,181,094 USD), while Sci-Fi (139,588,009 USD; 69.69) and Action (115,543,533 USD; 69.22) perform worse. Task 9 further suggests that some genres, especially Horror, generate more distinctive audience language than others. A limitation is that review snippets are short and genre collapsing may hide sub-genre variation.Another, limitation is that sentiment analysis using the bing lexicon does not account for genre context, meaning words like “terrifying” may be incorrectly classified as negative even when they signal positive reception in Horror films.
+CineMetrics should focus on converting younger Basic users into Premium through targeted content and upgrade offers. Task 6 shows that although Premium users appear more engaged overall (56.48 vs 44.04), Basic users are more engaged within every age tier, while younger users are heavily concentrated in Basic subscriptions (Q1: 4958 vs 447; Q2: 3523 vs 1496), suggesting strong upgrade potential.
+
+Task 4 also shows that Horror achieves the highest average rating (79.78) despite the lowest average budget (10,181,094 USD), indicating cost-effective investment potential.
+
+Task 9 further suggests that Horror (Scary – Highest TF-IDF)  generates more distinctive audience language than broader genres (Watch – Highest TF-IDF) supporting its strategic value. 
+
+One limitation is that short review snippets and Bing lexicon analysis may misrepresent genre-specific sentiment, since words such as “terrifying” may be classified as negative even when they reflect positive Horror reception
+
 
 
 ---

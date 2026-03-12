@@ -228,6 +228,8 @@ cinemetrics %>% count(primary_genre, sort = TRUE)
     7 Action         1585
     8 Documentary     345
 
+##### comment: There were no sub categories left that did not fit into a category called other hence I have exactly 8 levels
+
 ``` r
 # Write your verification code here:
 
@@ -642,6 +644,27 @@ top_unique_word <- unique_words %>%
   
 romance_unique <-  unique_words %>%
   filter(primary_genre == "Romance")
+
+### for more better analysis lets try removing the word "watch" to see if there are any genre distinguishing words ###
+
+unique_words_2<- cinemetrics %>%
+  filter(!is.na(review_snippet), !is.na(primary_genre)) %>%
+  unnest_tokens(output = word, input = review_snippet) %>%
+  anti_join(stop_words, by = "word") %>%
+  filter( word!= "watch") %>% 
+  count(primary_genre, word, sort = TRUE) %>% 
+  bind_tf_idf(term = word , document = primary_genre , n = n ) %>% 
+  arrange(primary_genre, desc(tf_idf))
+
+  
+top_unique_word_2<- unique_words_2 %>%
+  group_by(primary_genre) %>%
+  arrange(desc(tf_idf), .by_group = TRUE) %>%
+  slice_head(n = 1) %>%
+  select(primary_genre, word, tf_idf)
+
+romance_unique_2 <-  unique_words_2 %>%
+  filter(primary_genre == "Romance")
 ```
 
 <!--- WRITE YOUR WRITTEN ANSWER BELOW THIS LINE --->
@@ -668,8 +691,13 @@ Romance. Although watch and average still appear in both lists, TF-IDF
 improves the summary by prioritising words based on uniqueness as well
 as frequency, rather than frequency alone.
 
-In this dataset, the difference is modest because Romance reviews still
-contain quite generic vocabulary, but TF-IDF still gives a more
+As an additional exploratory check, I removed watch, since it had the
+highest TF-IDF score in 7 of the 8 genres, but this produced only
+limited change: Romance still remained dominated by generic words such
+as average, fairly, and bad.
+
+This suggests that the difference is modest because Romance reviews
+still contain quite generic vocabulary, but TF-IDF still gives a more
 genre-specific view than raw word counts. However in genres such as
 Horror the difference is much clearer, where a word like scary receives
 a much higher TF-IDF score (0.28) and provides a more distinctive
@@ -683,12 +711,27 @@ summary of the genre.
 
 #### Written Interpretation
 
-*Replace this text with your one-paragraph executive recommendation (max
-150 words), citing at least three specific findings from earlier tasks
-and acknowledging one limitation.*
+cineMetrics should focus on converting younger Basic users into Premium
+through targeted content and upgrade offers rather than simply
+increasing spending on expensive genres. Task 6 shows that although
+Premium users appear more engaged overall (56.48 vs 44.04), Basic users
+are actually more engaged within every age tier, while younger groups
+are heavily concentrated in Basic subscriptions (Q1: 4958 vs 447; Q2:
+3523 vs 1496), suggesting untapped upgrade potential. Task 4 also shows
+that higher budgets do not guarantee stronger audience response: Horror
+has the highest average rating (79.78) despite the lowest average budget
+(10,181,094 USD), while Sci-Fi (139,588,009 USD; 69.69) and Action
+(115,543,533 USD; 69.22) perform worse. Task 9 further suggests that
+some genres, especially Horror, generate more distinctive audience
+language than others. A limitation is that review snippets are short and
+genre collapsing may hide sub-genre variation.Another, limitation is
+that sentiment analysis using the bing lexicon does not account for
+genre context, meaning words like “terrifying” may be incorrectly
+classified as negative even when they signal positive reception in
+Horror films.
 
 ------------------------------------------------------------------------
 
 <!--- WORD COUNT ANCHOR --->
 
-    **Prose Word Count:** 1179 words
+    **Prose Word Count:** 1370 words
